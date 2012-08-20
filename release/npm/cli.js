@@ -1,6 +1,5 @@
 #!/usr/bin/env node
-/* Build time: 14-May-2012 10:24:48 */
-
+/* Build time: 20-August-2012 10:49:54 */
 /*
  * Encapsulates all of the CLI functionality. The api argument simply
  * provides environment-specific functionality.
@@ -29,9 +28,8 @@ function cli(api){
      * @param options {Object} The CLI options.
      * @return {Object} A ruleset object.
      */
-    function gatherRules(options){
-        var ruleset,
-            warnings = options.rules || options.warnings,
+    function gatherRules(options, ruleset){
+        var warnings = options.rules || options.warnings,
             errors = options.errors;
         
         if (warnings){
@@ -46,6 +44,25 @@ function cli(api){
             errors.split(",").forEach(function(value){
                 ruleset[value] = 2;
             });
+        }
+           
+        return ruleset;
+    }
+    
+    /**
+     * Filters out rules using the ignore command line option.
+     * @param options {Object} the CLI options
+     * @return {Object} A ruleset object.
+     */
+    function filterRules(options) {
+        var ignore = options.ignore,
+            ruleset = null;
+        
+        if (ignore) {
+            ruleset = CSSLint.getRuleset();
+            ignore.split(",").forEach(function(value){
+                delete ruleset[value];
+            });            
         }
         
         return ruleset;
@@ -71,7 +88,8 @@ function cli(api){
      */
     function processFile(relativeFilePath, options) {
         var input = api.readFile(relativeFilePath),
-            result = CSSLint.verify(input, gatherRules(options)),
+            ruleset = filterRules(options),
+            result = CSSLint.verify(input, gatherRules(options, ruleset)),
             formatter = CSSLint.getFormatter(options.format || "text"),
             messages = result.messages || [],
             output,
@@ -116,6 +134,7 @@ function cli(api){
             "  --quiet                   Only output when errors are present.",
             "  --errors=<rule[,rule]+>   Indicate which rules to include as errors.",
             "  --warnings=<rule[,rule]+> Indicate which rules to include as warnings.",
+            "  --ignore=<rule,[,rule]+>  Indicate which rules to ignore completely.",
             "  --version                 Outputs the current version number."
         ].join("\n") + "\n");
     }
@@ -302,6 +321,4 @@ cli({
         }
     }
 });
-
-
 
